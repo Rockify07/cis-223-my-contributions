@@ -40,33 +40,60 @@ class CatchFruitScene extends Phaser.Scene {
     this.load.image("background", "sprites/background.png");
   }
 
-  // Set up game objects
-  create() {
-    // Background stretched to screen
-    this.add
-      .image(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, "background")
-      .setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
+ create() {
+  // Background
+  this.add
+    .image(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, "background")
+    .setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    // Player basket at bottom
-    this.player = this.physics.add.image(SCREEN_WIDTH / 2, 550, "basket");
-    this.player.setCollideWorldBounds(true);
-    this.player.setScale(0.2);
+  // Player basket
+  this.player = this.physics.add.image(SCREEN_WIDTH / 2, 550, "basket");
+  this.player.setCollideWorldBounds(true);
+  this.player.setScale(0.2);
 
-    // Fruit group
-    this.fruits = this.physics.add.group({
-      repeat: 4,
-      setXY: { x: 100, y: 0, stepX: 150 },
-    });
+  // Create a group for fruits
+  this.fruits = this.physics.add.group();
 
-    // Initialize each fruit with random type + speed
-    this.fruits.children.iterate((fruit) => {
-      const randomType = Phaser.Utils.Array.GetRandom(this.fruitTypes);
-      fruit.setTexture(randomType);
-      fruit.setScale(0.12);
-      fruit.setVelocityY(
-        Phaser.Math.Between(this.fallSpeed, this.fallSpeed + 100)
+  // Make fruits appear one at a time with random type and X position
+  this.time.addEvent({
+    delay: 800, // new fruit every 0.8s
+    callback: () => {
+      const fruitTypes = ["apple", "banana", "grapes", "orange"];
+      const type = Phaser.Utils.Array.GetRandom(fruitTypes);
+
+      const fruit = this.fruits.create(
+        Phaser.Math.Between(50, SCREEN_WIDTH - 50),
+        0,
+        type
       );
-    });
+
+      fruit.setScale(0.12);
+      fruit.setVelocityY(Phaser.Math.Between(this.fallSpeed, this.fallSpeed + 100));
+    },
+    loop: true,
+  });
+
+  // Controls
+  this.cursors = this.input.keyboard.createCursorKeys();
+
+  // Collision detection
+  this.physics.add.overlap(this.player, this.fruits, this.catchFruit, null, this);
+
+  // Score text
+  this.scoreText = this.add.text(16, 16, "Score: 0", {
+    fontSize: "32px",
+    fill: "#ffffff",
+  });
+
+  // Game Over text
+  this.gameOverText = this.add.text(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, "", {
+    fontSize: "48px",
+    fill: "#ff0000",
+    align: "center",
+  });
+  this.gameOverText.setOrigin(0.5);
+}
+
 
     // Keyboard input
     this.cursors = this.input.keyboard.createCursorKeys();
