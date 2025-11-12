@@ -3,7 +3,11 @@ Final Project: Catch the Fruit Game
 By: Rock Kongolo
 Tool: Phaser.js
 
-Based on: Phaser 3 documentation (scene, physics, input, groups)
+Features:
+- 3 levels total
+- Each level increases fruit fall speed and basket speed
+- Level indicators and flash effect
+- Win screen at Level 3 completion
 */
 
 const SCREEN_WIDTH = 800;
@@ -18,10 +22,14 @@ class CatchFruitScene extends Phaser.Scene {
     this.fruits = null;
     this.cursors = null;
     this.score = 0;
+    this.level = 1;
+    this.maxLevel = 3; // total number of levels
     this.scoreText = null;
+    this.levelText = null;
     this.fallSpeed = 200;
+    this.moveSpeed = 500;
     this.gameOver = false;
-    this.gameOverText = null;
+    this.wonGame = false;
     this.fruitTypes = ["apple", "banana", "grapes", "orange"];
   }
 
@@ -40,7 +48,7 @@ class CatchFruitScene extends Phaser.Scene {
       .image(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, "background")
       .setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    // Basket (player)
+    // Player basket
     this.player = this.physics.add.image(SCREEN_WIDTH / 2, 550, "basket");
     this.player.setCollideWorldBounds(true);
     this.player.setScale(0.2);
@@ -50,18 +58,20 @@ class CatchFruitScene extends Phaser.Scene {
 
     // Spawner: drops fruit continuously
     this.time.addEvent({
-      delay: 800, // new fruit every 0.8s
+      delay: 800,
       callback: () => {
-        const type = Phaser.Utils.Array.GetRandom(this.fruitTypes);
-        const fruit = this.fruits.create(
-          Phaser.Math.Between(50, SCREEN_WIDTH - 50),
-          0,
-          type
-        );
-        fruit.setScale(0.12);
-        fruit.setVelocityY(
-          Phaser.Math.Between(this.fallSpeed, this.fallSpeed + 100)
-        );
+        if (!this.gameOver && !this.wonGame) {
+          const type = Phaser.Utils.Array.GetRandom(this.fruitTypes);
+          const fruit = this.fruits.create(
+            Phaser.Math.Between(50, SCREEN_WIDTH - 50),
+            0,
+            type
+          );
+          fruit.setScale(0.12);
+          fruit.setVelocityY(
+            Phaser.Math.Between(this.fallSpeed, this.fallSpeed + 100)
+          );
+        }
       },
       loop: true,
     });
@@ -69,7 +79,7 @@ class CatchFruitScene extends Phaser.Scene {
     // Controls
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    // Collision
+    // Collision detection
     this.physics.add.overlap(this.player, this.fruits, this.catchFruit, null, this);
 
     // Score text
@@ -78,29 +88,39 @@ class CatchFruitScene extends Phaser.Scene {
       fill: "#ffffff",
     });
 
-    // Game Over text
-    this.gameOverText = this.add.text(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, "", {
+    // Level text
+    this.levelText = this.add.text(16, 60, "Level: 1", {
+      fontSize: "28px",
+      fill: "#ffffff",
+    });
+
+    // Game Over / Win text
+    this.messageText = this.add.text(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, "", {
       fontSize: "48px",
       fill: "#ff0000",
       align: "center",
+      fontFamily: "Arial",
     });
-    this.gameOverText.setOrigin(0.5);
+    this.messageText.setOrigin(0.5);
   }
 
   update() {
-    if (this.gameOver) {
+    if (this.gameOver || this.wonGame) {
       if (Phaser.Input.Keyboard.JustDown(this.cursors.space)) {
         this.scene.restart();
         this.score = 0;
+        this.level = 1;
         this.fallSpeed = 200;
+        this.moveSpeed = 500;
         this.gameOver = false;
+        this.wonGame = false;
       }
       return;
     }
 
     // Player movement
-    if (this.cursors.left.isDown) this.player.setVelocityX(-700);
-    else if (this.cursors.right.isDown) this.player.setVelocityX(700);
+    if (this.cursors.left.isDown) this.player.setVelocityX(-this.moveSpeed);
+    else if (this.cursors.right.isDown) this.player.setVelocityX(this.moveSpeed);
     else this.player.setVelocityX(0);
 
     // Check if fruit missed
@@ -114,7 +134,53 @@ class CatchFruitScene extends Phaser.Scene {
     this.score += 10;
     this.scoreText.setText("Score: " + this.score);
 
-    if (this.score % 50 === 0) this.fallSpeed += 30;
+    // Check level thresholds (100, 200, 300)
+    if (this.score % 100 === 0 && this.score <= this.maxLevel * 100) {
+      this.advanceLevel();
+    }
+  }
+
+  advanceLevel() {
+    if (this.level < this.maxLevel) {
+      this.level++;
+      this.levelText.setText("Level: " + this.level);
+
+      // Increase difficulty
+      this.fallSpeed += 75;
+      this.moveSpeed += 75;
+
+      // Flash effect
+      const flash = this.add.rectangle(
+        SCREEN_WIDTH / 2,
+        SCREEN_HEIGHT / 2,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
+        0xffffff,
+        0.3
+      );
+      this.tweens.add({
+        targets: flash,
+        alpha: 0,
+        duration: 500,
+        onComplete: () => flash.destroy(),
+      });
+
+      // Show level message
+      const levelMsg = this.add.text(
+        SCREEN_WIDTH / 2,
+        SCREEN_HEIGHT / 2,
+        `LEVEL ${this.level} START!`,
+        {
+          fontSize: "48px",
+          fill: "#00ff00",
+          fontFamily: "Arial",
+        }
+      );
+      levelMsg.setOrigin(0.5);
+      this.time.delayedCall(1000, () => levelMsg.destroy());
+    } else {
+      this.winGame();
+    }
   }
 
   endGame() {
@@ -123,7 +189,15 @@ class CatchFruitScene extends Phaser.Scene {
 
     this.fruits.children.iterate((fruit) => fruit.setVelocityY(0));
     this.player.setVelocityX(0);
-    this.gameOverText.setText("GAME OVER\nPress SPACE to Restart");
+    this.messageText.setText("GAME OVER\nPress SPACE to Restart");
+  }
+
+  winGame() {
+    this.wonGame = true;
+    this.player.setVelocityX(0);
+    this.fruits.children.iterate((fruit) => fruit.setVelocityY(0));
+    this.messageText.setFill("#00ff00");
+    this.messageText.setText("🎉 YOU WIN! 🎉\nPress SPACE to Play Again");
   }
 }
 
