@@ -99,8 +99,8 @@ class CatchFruitScene extends Phaser.Scene {
     }
 
     // Player movement
-    if (this.cursors.left.isDown) this.player.setVelocityX(-500);
-    else if (this.cursors.right.isDown) this.player.setVelocityX(500);
+    if (this.cursors.left.isDown) this.player.setVelocityX(-700);
+    else if (this.cursors.right.isDown) this.player.setVelocityX(700);
     else this.player.setVelocityX(0);
 
     // Check if fruit missed
