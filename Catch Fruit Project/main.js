@@ -2,23 +2,35 @@
 Final Project: Catch the Fruit Game
 By: Rock Kongolo
 Tool: Phaser.js
-Description: For my final project, I am developing an interactive browser-based arcade game called “Catch the Fruit,” using the JavaScript framework Phaser.js. The game challenges the player to control a basket and catch fruits that fall from the top of the screen. Each fruit caught earns points, and the goal is to progress through five increasingly challenging levels. The game emphasizes speed, timing, and reaction, providing a fun and engaging experience that demonstrates my ability to apply JavaScript concepts in a creative project.
 
-When the visitor opens the web page, they are greeted by a colorful background and a basket located at the bottom of the screen. Fruits—including apples, bananas, oranges, and grapes—fall from random positions above. Using the left and right arrow keys, the player must move the basket to catch as many fruits as possible. Each caught fruit adds ten points to the score, which is displayed at the top of the screen. Once the player reaches 100 points, the game announces “Level 2 Start!” and increases both the fruit falling speed and the basket’s movement speed. Every 100 additional points advances the player to the next level, up to Level 5.
+Description:
+For my final project, I am developing an interactive browser-based arcade game called “Catch the Fruit,” using the JavaScript framework Phaser.js. The game challenges the player to control a basket and catch fruits that fall from the top of the screen. Each fruit caught earns points, and the goal is to progress through five increasingly challenging levels. The game emphasizes speed, timing, and reaction, providing a fun and engaging experience that demonstrates my ability to apply JavaScript concepts in a creative project.
 
-As the levels progress, the difficulty increases, making it harder to catch fruits in time. If the player successfully reaches 500 points (Level 5 completion), the game displays a “You Win!” message to celebrate the achievement. However, if any fruit reaches the bottom of the screen without being caught, the game ends immediately with a “Game Over” message. The player can then press the spacebar to restart and try again.
+When the visitor opens the web page, they are greeted by a basket located at the bottom of the screen and a Level 1 background. A unique feature of my project is that **each level has its own background image**, such as daytime, sunset, nighttime, and space themes. As the player advances through levels, the background smoothly fades into the next one using a tween transition effect. This gives the game a more polished, professional feel and visually rewards the player for progressing.
 
-Technically, this project demonstrates the use of essential JavaScript fundamentals, including variables, functions, parameters, iteration, conditional logic, arrays, and object-oriented programming. I use Phaser’s built-in methods like `preload()` to load assets, `create()` to initialize game elements, and `update()` to manage continuous gameplay mechanics such as movement and collisions. The fruits are managed through an array-based random selection, and a physics engine handles their gravity and collision detection with the basket.
+Fruits—including apples, bananas, oranges, and grapes—fall from random positions above. Using the left and right arrow keys, the player moves the basket to catch the fruits. Each catch adds ten points to the score, which is displayed at the top left. Every 100 points, the level increases, the fruit falling speed increases, and the basket moves faster, making gameplay more challenging. These difficulty changes create a sense of progression across all five levels.
 
-This project shows how core programming principles can be applied to an enjoyable and visually appealing web game. My goal is to provide players with a rewarding sense of progression while showing my ability to structure organized, well-commented, and interactive JavaScript code. With this project, I combine creativity, logic, and technical skill into one engaging web experience.
+If the player reaches 500 points (Level 5 completion), the game displays a celebratory “You Win!” message. However, if any fruit reaches the ground, the game ends immediately with a “Game Over” message. Pressing the spacebar restarts the entire game.
+
+Technically, this project demonstrates essential JavaScript fundamentals, including variables, functions, iteration, parameters, conditional logic, arrays, and object-oriented programming. Phaser’s core functions—`preload()`, `create()`, and `update()`—are used to manage asset loading, game object initialization, real-time physics, fruit spawning, movement, and collision detection. The background transition system uses tween animations to smoothly fade between images.
+
+This project shows how core programming principles can be applied to create a polished, interactive browser game. The dynamic backgrounds, increasing difficulty, and responsive controls combine to create a fun and engaging experience that reflects both creativity and technical skill.
 
 Features:
-- 3 levels total
-- Each level increases fruit fall speed and basket speed
-- Level indicators and flash effect
-- Win screen at Level 3 completion
-- Custom fruit and basket sizes
+- 5 total levels of increasing difficulty
+- A unique background image for every level (day, sunset, night, space, neon/5th background)
+- Smooth fade transition between backgrounds when leveling up
+- Fruit fall speed increases each level
+- Basket movement speed increases each level
+- Score increases by 10 for each fruit caught
+- Level-up announcement messages with flash effect
+- Game Over screen when a fruit touches the ground
+- Win screen when the player reaches 500 points (Level 5 complete)
+- Custom fruit and basket sizes for cleaner gameplay visuals
+- Continuous fruit spawning with random fruit types
+
 */
+
 
 const SCREEN_WIDTH = 800;
 const SCREEN_HEIGHT = 600;
@@ -33,13 +45,25 @@ class CatchFruitScene extends Phaser.Scene {
     this.cursors = null;
     this.score = 0;
     this.level = 1;
-    this.maxLevel = 5; // total number of levels
+    this.maxLevel = 5;
     this.scoreText = null;
     this.levelText = null;
     this.fallSpeed = 200;
     this.moveSpeed = 500;
     this.gameOver = false;
     this.wonGame = false;
+
+    // Backgrounds for each level
+    this.backgroundImages = [
+      "background1",
+      "background2",
+      "background3",
+      "background4",
+      "background5",
+    ];
+
+    this.currentBackground = null;
+
     this.fruitTypes = ["apple", "banana", "grapes", "orange"];
   }
 
@@ -49,24 +73,30 @@ class CatchFruitScene extends Phaser.Scene {
     this.load.image("banana", "sprites/banana.png");
     this.load.image("grapes", "sprites/grapes.png");
     this.load.image("orange", "sprites/orange.png");
-    this.load.image("background", "sprites/background.png");
+
+    // Load all 5 level backgrounds
+    this.load.image("background1", "sprites/background1.png");
+    this.load.image("background2", "sprites/background2.png");
+    this.load.image("background3", "sprites/background3.png");
+    this.load.image("background4", "sprites/background4.png");
+    this.load.image("background5", "sprites/background5.png");
   }
 
   create() {
-    // Background
-    this.add
-      .image(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, "background")
+    // Initial Background (Level 1)
+    this.currentBackground = this.add
+      .image(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, "background1")
       .setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    // 
+    // Basket
     this.player = this.physics.add.image(SCREEN_WIDTH / 2, 550, "basket");
     this.player.setCollideWorldBounds(true);
-    this.player.setScale(0.14); // basket size
+    this.player.setScale(0.14);
 
-    // Fruits
+    // Fruit Group
     this.fruits = this.physics.add.group();
 
-    // Spawner: drops fruit continuously
+    // Fruit Spawner
     this.time.addEvent({
       delay: 800,
       callback: () => {
@@ -78,10 +108,9 @@ class CatchFruitScene extends Phaser.Scene {
             type
           );
 
-          // Custom sizes per fruit
           if (type === "banana") fruit.setScale(0.10);
-          else if (type === "grapes") fruit.setScale(0.1); 
-          else if (type === "apple") fruit.setScale(0.10); 
+          else if (type === "grapes") fruit.setScale(0.1);
+          else if (type === "apple") fruit.setScale(0.10);
           else fruit.setScale(0.12);
 
           fruit.setVelocityY(
@@ -95,27 +124,27 @@ class CatchFruitScene extends Phaser.Scene {
     // Controls
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    // Collision detection
+    // Collision Detection
     this.physics.add.overlap(this.player, this.fruits, this.catchFruit, null, this);
 
-    // Score text
+    // Score UI
     this.scoreText = this.add.text(16, 16, "Score: 0", {
       fontSize: "32px",
       fill: "#ffffff",
     });
 
-    // Level text
+    // Level UI
     this.levelText = this.add.text(16, 60, "Level: 1", {
       fontSize: "28px",
       fill: "#ffffff",
     });
 
-    // Game Over / Win text
+    // Win / Game Over UI
     this.messageText = this.add.text(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, "", {
       fontSize: "48px",
       fill: "#ff0000",
-      align: "center",
       fontFamily: "Arial",
+      align: "center",
     });
     this.messageText.setOrigin(0.5);
   }
@@ -134,12 +163,12 @@ class CatchFruitScene extends Phaser.Scene {
       return;
     }
 
-    // Player movement
+    // Movement
     if (this.cursors.left.isDown) this.player.setVelocityX(-this.moveSpeed);
     else if (this.cursors.right.isDown) this.player.setVelocityX(this.moveSpeed);
     else this.player.setVelocityX(0);
 
-    // Check if fruit missed
+    // Missed Fruit
     this.fruits.children.iterate((fruit) => {
       if (fruit.active && fruit.y > SCREEN_HEIGHT) this.endGame();
     });
@@ -150,7 +179,7 @@ class CatchFruitScene extends Phaser.Scene {
     this.score += 10;
     this.scoreText.setText("Score: " + this.score);
 
-    // Check level thresholds (100, 200, 300)
+    // Level triggers: 100, 200, 300, 400, 500
     if (this.score % 100 === 0 && this.score <= this.maxLevel * 100) {
       this.advanceLevel();
     }
@@ -161,11 +190,11 @@ class CatchFruitScene extends Phaser.Scene {
       this.level++;
       this.levelText.setText("Level: " + this.level);
 
-      // Increase difficulty
       this.fallSpeed += 75;
       this.moveSpeed += 75;
 
-      // Flash effect
+      this.changeBackground(this.level);
+
       const flash = this.add.rectangle(
         SCREEN_WIDTH / 2,
         SCREEN_HEIGHT / 2,
@@ -181,22 +210,37 @@ class CatchFruitScene extends Phaser.Scene {
         onComplete: () => flash.destroy(),
       });
 
-      // Show level message
-      const levelMsg = this.add.text(
+      const msg = this.add.text(
         SCREEN_WIDTH / 2,
         SCREEN_HEIGHT / 2,
         `LEVEL ${this.level} START!`,
-        {
-          fontSize: "48px",
-          fill: "#00ff00",
-          fontFamily: "Arial",
-        }
+        { fontSize: "48px", fill: "#00ff00", fontFamily: "Arial" }
       );
-      levelMsg.setOrigin(0.5);
-      this.time.delayedCall(1000, () => levelMsg.destroy());
+      msg.setOrigin(0.5);
+      this.time.delayedCall(1000, () => msg.destroy());
     } else {
       this.winGame();
     }
+  }
+
+  // ⭐ Background transition
+  changeBackground(level) {
+    const bgKey = this.backgroundImages[level - 1];
+
+    const newBG = this.add
+      .image(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, bgKey)
+      .setDisplaySize(SCREEN_WIDTH, SCREEN_HEIGHT)
+      .setAlpha(0);
+
+    this.tweens.add({
+      targets: newBG,
+      alpha: 1,
+      duration: 800,
+      onComplete: () => {
+        this.currentBackground.destroy();
+        this.currentBackground = newBG;
+      },
+    });
   }
 
   endGame() {
@@ -210,19 +254,21 @@ class CatchFruitScene extends Phaser.Scene {
 
   winGame() {
     this.wonGame = true;
+
     this.player.setVelocityX(0);
     this.fruits.children.iterate((fruit) => fruit.setVelocityY(0));
+
     this.messageText.setFill("#00ff00");
     this.messageText.setText("🎉 YOU WIN! 🎉\nPress SPACE to Play Again");
   }
 }
 
-//GAME CONFIG
+// GAME CONFIG
 const config = {
   type: Phaser.AUTO,
   width: SCREEN_WIDTH,
   height: SCREEN_HEIGHT,
-  backgroundColor: "#87CEEB",
+  backgroundColor: "#000",
   physics: {
     default: "arcade",
     arcade: {
